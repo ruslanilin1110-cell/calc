@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1791630739820,
+      "tag": "0000_bent_terror",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1792575648533,
+      "tag": "0001_furry_scorpion",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792594815019,
+      "tag": "0002_motionless_mandroid",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1792594961752,
+      "tag": "0003_fixed_blue_blade",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792639947244,
+      "tag": "0004_woozy_dagger",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1792738123321,
+      "tag": "0005_orange_killraven",
+      "breakpoints": true
+    }
+  ]
+}

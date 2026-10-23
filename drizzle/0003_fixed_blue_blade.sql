@@ -1,0 +1,1 @@
+ALTER TABLE `ledger_members` ADD `change_key` text;

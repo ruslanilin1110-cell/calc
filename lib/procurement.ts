@@ -1,0 +1,20 @@
+import {z} from 'zod';
+import {blank,statusColors,type Ledger} from './ledger';
+export const urgencySchema=z.object({id:z.string().min(1).max(100),name:z.string().trim().min(1).max(60),color:z.enum(statusColors),deleted:z.boolean().optional()});
+export const urgencyListSchema=z.array(urgencySchema).min(1).max(100).superRefine((rows,ctx)=>{if(!rows.some(x=>!x.deleted)||new Set(rows.map(x=>x.id)).size!==rows.length||new Set(rows.filter(x=>!x.deleted).map(x=>x.name.toLocaleLowerCase('ru-RU'))).size!==rows.filter(x=>!x.deleted).length)ctx.addIssue({code:'custom',message:'Нужен хотя бы один статус; названия и номера не должны повторяться'});});
+export type Urgency=z.infer<typeof urgencySchema>;
+export const defaultUrgencies:Urgency[]=[{id:'urgent',name:'Срочно',color:'red'},{id:'normal',name:'Обычный',color:'blue'},{id:'later',name:'Не срочно',color:'green'}];
+export const purchaseItemSchema=z.object({id:z.string().uuid(),name:z.string().trim().min(1).max(150),quantity:z.number().positive().max(1e9),unit:z.string().trim().min(1).max(30),urgencyId:z.string().min(1).max(100),urgencyName:z.string().max(60).optional(),urgencyColor:z.enum(statusColors).optional(),price:z.number().int().nonnegative().max(1e14).optional(),currency:z.enum(['CNY','USD','KZT']).default('CNY'),weight:z.number().positive().max(1e9).optional()});
+export const purchaseInput=z.object({id:z.string().uuid(),revision:z.number().int().nonnegative().optional(),title:z.string().trim().min(1).max(150),note:z.string().trim().max(2000),items:z.array(purchaseItemSchema).min(1,'Добавьте хотя бы одну позицию').max(100)}).superRefine((p,ctx)=>{if(new Set(p.items.map(x=>x.id)).size!==p.items.length)ctx.addIssue({code:'custom',message:'Повторяющиеся позиции'});});
+export type PurchaseInput=z.infer<typeof purchaseInput>;
+export type PurchaseItem=z.infer<typeof purchaseItemSchema>;
+export type PurchaseRow={id:string;owner:string;member_id:string;author:string;payload:string;status:'new'|'reviewed'|'ordered';seen_at:string|null;revision:number;created_at:string;updated_at:string};
+export function purchaseView(row:PurchaseRow){const p=purchaseInput.parse(JSON.parse(row.payload));return {...p,id:row.id,revision:row.revision,memberId:row.member_id,author:row.author,status:row.status,seenAt:row.seen_at,createdAt:row.created_at,updatedAt:row.updated_at};}
+export type Purchase=ReturnType<typeof purchaseView>;
+export function normalizePurchase(input:unknown,urgencies:Urgency[]):PurchaseInput{const p=purchaseInput.parse(input);return {...p,items:p.items.map(x=>{const u=urgencies.find(u=>u.id===x.urgencyId&&!u.deleted);if(!u)throw Error('Статус срочности недоступен. Обновите список');return {...x,urgencyName:u.name,urgencyColor:u.color};})};}
+export const buyerMemberInput=z.object({id:z.string().uuid().optional(),revision:z.number().int().nonnegative().optional(),name:z.string().trim().min(1).max(100),email:z.string().trim().email().max(254).transform(s=>s.toLowerCase()),active:z.boolean()});
+export type BuyerMember={id:string;name:string;email:string;active:boolean;revision:number};
+// Whitelist only cargo data. Never send wallet balances, accounts, transfers or backups.
+export function buyerLedger(state:Ledger):Ledger{return {...blank,shipments:state.shipments.map(s=>({...s})),customStatuses:state.customStatuses,statusColors:state.statusColors,statusLabels:state.statusLabels,hiddenStatusIds:state.hiddenStatusIds,transactions:state.transactions.filter(t=>!!t.shipmentId&&['payment','refund','shipping','fee'].includes(t.kind)).map(t=>({id:t.id,shipmentId:t.shipmentId,kind:t.kind,date:t.date,currency:t.currency,amount:t.amount,kztCost:t.kztCost,settlementCurrency:t.settlementCurrency,settlementAmount:t.settlementAmount,note:''}))};}
+export type ProcurementData={role:'admin'|'buyer';member?:BuyerMember;members:BuyerMember[];requests:Purchase[];urgencies:Urgency[];settingsRevision:number;unread:number;state?:Ledger};
+export const purchaseStatusNames={new:'Новая заявка',reviewed:'В работе',ordered:'Заказано'} as const;
